@@ -6,6 +6,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import javax.money.UnknownCurrencyException;
+import javax.money.convert.CurrencyConversionException;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
@@ -16,7 +17,7 @@ public class CoinbaseRateProviderTest {
     @BeforeClass
     public static void setUpBeforeClass() {
         coinbaseRateProvider = new CoinbaseRateProvider();
-        CurrencyUnitBuilder.of("BTC", "BitcoinProvider")
+        CurrencyUnitBuilder.of("BTC", "CoinbaseRateProvider")
                 .setDefaultFractionDigits(8)
                 .build(true);
     }
@@ -32,7 +33,12 @@ public class CoinbaseRateProviderTest {
     }
 
     @Test
-    public void testGetExchangeRateWithInvalidCurrency() {
-        assertThrows(UnknownCurrencyException.class, () -> coinbaseRateProvider.getExchangeRate("BTC", "INVALID"));
+    public void testGetExchangeRateWithNotSupportedBaseCurrency() {
+        assertThrows(CurrencyConversionException.class, () -> coinbaseRateProvider.getExchangeRate("USD", "BTC"));
+    }
+
+    @Test
+    public void testGetExchangeRateWithNotSupportedTermCurrency() {
+        assertThrows(CurrencyConversionException.class, () -> coinbaseRateProvider.getExchangeRate("BTC", "ZWL"));
     }
 }
