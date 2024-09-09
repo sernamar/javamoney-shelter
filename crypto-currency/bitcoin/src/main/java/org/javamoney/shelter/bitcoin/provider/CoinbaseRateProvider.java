@@ -62,8 +62,7 @@ public class CoinbaseRateProvider extends AbstractRateProvider {
     }
 
     private void loadSupportedCurrencies() {
-        try {
-            HttpClient httpClient = HttpClient.newHttpClient();
+        try (HttpClient httpClient = HttpClient.newHttpClient()){
             String url = "https://api.coinbase.com/v2/currencies";
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -79,8 +78,7 @@ public class CoinbaseRateProvider extends AbstractRateProvider {
     }
 
     private void loadRates() {
-        try {
-            HttpClient httpClient = HttpClient.newHttpClient();
+        try (HttpClient httpClient = HttpClient.newHttpClient()){
             String url = "https://api.coinbase.com/v2/exchange-rates?currency=" + DEFAULT_BASE_CURRENCY;
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
