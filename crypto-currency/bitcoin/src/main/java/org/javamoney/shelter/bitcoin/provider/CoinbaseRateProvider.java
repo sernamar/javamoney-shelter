@@ -7,6 +7,7 @@ import org.javamoney.moneta.spi.AbstractRateProvider;
 import org.javamoney.moneta.spi.DefaultNumberValue;
 
 import javax.money.CurrencyUnit;
+import javax.money.MonetaryException;
 import javax.money.convert.*;
 import java.io.IOException;
 import java.net.URI;
@@ -14,11 +15,9 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
-import java.util.Currency;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
 
 public class CoinbaseRateProvider extends AbstractRateProvider {
     private static final RateType RATE_TYPE = RateType.DEFERRED;
@@ -29,8 +28,6 @@ public class CoinbaseRateProvider extends AbstractRateProvider {
 
     private final List<String> supportedCurrencies = new ArrayList<>();
     private final Map<String, Number> rates = new ConcurrentHashMap<>();
-
-    private final Logger log = Logger.getLogger(getClass().getName());
 
     public CoinbaseRateProvider() {
         super(CONTEXT);
@@ -77,7 +74,7 @@ public class CoinbaseRateProvider extends AbstractRateProvider {
             JsonNode dataNode = jsonNode.get("data");
             dataNode.forEach(node -> supportedCurrencies.add(node.get("id").asText()));
         } catch (IOException | InterruptedException e) {
-            log.severe("Failed to load supported currencies from Coinbase API: " + e.getMessage());
+            throw new MonetaryException("Failed to load supported currencies from Coinbase API", e);
         }
     }
 
@@ -94,7 +91,7 @@ public class CoinbaseRateProvider extends AbstractRateProvider {
             JsonNode ratesNode = jsonNode.get("data").get("rates");
             ratesNode.fields().forEachRemaining(entry -> rates.put(entry.getKey(), entry.getValue().asDouble()));
         } catch (IOException | InterruptedException e) {
-            log.severe("Failed to load exchange rates from Coinbase API: " + e.getMessage());
+            throw new MonetaryException("Failed to load exchange rates from Coinbase API", e);
         }
     }
 }
