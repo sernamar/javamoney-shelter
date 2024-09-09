@@ -2,6 +2,10 @@ package org.javamoney.shelter.bitcoin.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.javamoney.moneta.convert.ExchangeRateBuilder;
 import org.javamoney.moneta.spi.AbstractRateProvider;
 import org.javamoney.moneta.spi.DefaultNumberValue;
@@ -10,10 +14,6 @@ import javax.money.CurrencyUnit;
 import javax.money.MonetaryException;
 import javax.money.convert.*;
 import java.io.IOException;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -62,33 +62,31 @@ public class CoinbaseRateProvider extends AbstractRateProvider {
     }
 
     private void loadSupportedCurrencies() {
-        try (HttpClient httpClient = HttpClient.newHttpClient()){
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()){
             String url = "https://api.coinbase.com/v2/currencies";
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode jsonNode = mapper.readTree(response.body());
-            JsonNode dataNode = jsonNode.get("data");
-            dataNode.forEach(node -> supportedCurrencies.add(node.get("id").asText()));
-        } catch (IOException | InterruptedException e) {
+            HttpGet request = new HttpGet(url);
+            try (CloseableHttpResponse response = httpClient.execute(request)){
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode jsonNode = mapper.readTree(response.getEntity().getContent());
+                JsonNode dataNode = jsonNode.get("data");
+                dataNode.forEach(node -> supportedCurrencies.add(node.get("id").asText()));
+            }
+        } catch (IOException e) {
             throw new MonetaryException("Failed to load supported currencies from Coinbase API", e);
         }
     }
 
     private void loadRates() {
-        try (HttpClient httpClient = HttpClient.newHttpClient()){
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()){
             String url = "https://api.coinbase.com/v2/exchange-rates?currency=" + DEFAULT_BASE_CURRENCY;
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(url))
-                    .build();
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode jsonNode = mapper.readTree(response.body());
-            JsonNode ratesNode = jsonNode.get("data").get("rates");
-            ratesNode.fields().forEachRemaining(entry -> rates.put(entry.getKey(), entry.getValue().asDouble()));
-        } catch (IOException | InterruptedException e) {
+            HttpGet request = new HttpGet(url);
+            try (CloseableHttpResponse response = httpClient.execute(request)){
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode jsonNode = mapper.readTree(response.getEntity().getContent());
+                JsonNode ratesNode = jsonNode.get("data").get("rates");
+                ratesNode.fields().forEachRemaining(entry -> rates.put(entry.getKey(), entry.getValue().asDouble()));
+            }
+        } catch (IOException e) {
             throw new MonetaryException("Failed to load exchange rates from Coinbase API", e);
         }
     }
